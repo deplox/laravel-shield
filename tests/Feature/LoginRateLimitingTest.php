@@ -57,7 +57,7 @@ test('lockout returns 429 after too many attempts', function (): void {
         userModel: User::class,
         maxLoginAttempts: 3,
         loginDecaySeconds: 60,
-        validateUser: fn ($user) => $user->verified_at !== null,
+        validateUser: fn ($user) => $user->email_verified_at !== null,
     ));
 
     User::factory()->create(['email' => 'test@example.com', 'password' => 'password123']);
@@ -91,7 +91,7 @@ test('lockout fires Lockout event', function (): void {
         userModel: User::class,
         maxLoginAttempts: 2,
         loginDecaySeconds: 60,
-        validateUser: fn ($user) => $user->verified_at !== null,
+        validateUser: fn ($user) => $user->email_verified_at !== null,
     ));
 
     User::factory()->create(['email' => 'test@example.com', 'password' => 'password123']);
@@ -123,7 +123,7 @@ test('lockout uses custom field name', function (): void {
         userModel: User::class,
         maxLoginAttempts: 1,
         loginDecaySeconds: 60,
-        validateUser: fn ($user) => $user->verified_at !== null,
+        validateUser: fn ($user) => $user->email_verified_at !== null,
     ));
 
     User::factory()->create(['email' => 'test@example.com', 'password' => 'password123']);

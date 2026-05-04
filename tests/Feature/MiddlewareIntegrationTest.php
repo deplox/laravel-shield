@@ -60,7 +60,7 @@ test('deny authenticated detects authentication via custom extract token callbac
         tokenModel: Token::class,
         userModel: User::class,
         prefix: 'dpl_',
-        validateUser: fn ($user) => $user->verified_at !== null,
+        validateUser: fn ($user) => $user->email_verified_at !== null,
         extractToken: fn (Request $request) => $request->query('api_token'),
     ));
 
@@ -79,7 +79,7 @@ test('deny authenticated allows request when validate token callback rejects', f
         tokenModel: Token::class,
         userModel: User::class,
         prefix: 'dpl_',
-        validateUser: fn ($user) => $user->verified_at !== null,
+        validateUser: fn ($user) => $user->email_verified_at !== null,
         validateToken: fn (IsAuthToken $token, $request) => false,
     ));
 

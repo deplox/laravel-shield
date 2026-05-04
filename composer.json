@@ -12,13 +12,27 @@
     ],
     "require": {
         "php": "^8.4",
+        "deplox/laravel-support": "^0.1",
         "laravel/framework": "^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
     },
     "autoload": {
         "psr-4": {
             "Deplox\\Shield\\": "src/",
             "Deplox\\Shield\\Database\\Factories\\": "database/factories/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Deplox\\Shield\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest"
     },
     "extra": {
         "laravel": {
@@ -27,6 +41,12 @@
             ]
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/deplox/laravel-support.git"
+        }
+    ],
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",

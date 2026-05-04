@@ -22,7 +22,7 @@ final class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password' => 'pa$$word',
             'remember_token' => Str::random(60),
-            'verified_at' => Date::now(),
+            'email_verified_at' => Date::now(),
         ];
     }
 
@@ -32,7 +32,7 @@ final class UserFactory extends Factory
     public function unverified(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'verified_at' => null,
+            'email_verified_at' => null,
         ]);
     }
 }

@@ -16,7 +16,7 @@ function shieldWithLimit(?int $limit, TokenLimitBehavior $behavior = TokenLimitB
         prefix: 'dpl_',
         maxTokensPerUser: $limit,
         onTokenLimit: $behavior,
-        validateUser: fn ($user): bool => $user->verified_at !== null,
+        validateUser: fn ($user): bool => $user->email_verified_at !== null,
     ));
 }
 

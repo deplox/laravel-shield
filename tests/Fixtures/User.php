@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 /**
  * @property-read string $id
@@ -21,7 +22,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
  * @property-read string $email
  * @property-read string $password
  * @property-read string|null $remember_token
- * @property-read \Carbon\CarbonInterface|null $verified_at
+ * @property-read \Carbon\CarbonInterface|null $email_verified_at
  * @property-read \Carbon\CarbonInterface $created_at
  * @property-read \Carbon\CarbonInterface $updated_at
  */
@@ -36,6 +37,7 @@ final class User extends Authenticatable implements CanResetPasswordContract, Ha
     use HasTokens;
     use HasUlids;
     use MustVerifyEmail;
+    use Notifiable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -53,8 +55,8 @@ final class User extends Authenticatable implements CanResetPasswordContract, Ha
     protected function casts(): array
     {
         return [
-            $this->getAuthPasswordName() => 'hashed',
-            $this->getVerifiedAtName() => 'datetime',
+            'password' => 'hashed',
+            'email_verified_at' => 'datetime',
         ];
     }
 }

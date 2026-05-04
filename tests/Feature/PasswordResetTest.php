@@ -25,7 +25,7 @@ function shieldWithReset(RevokeOnPasswordChange $mode = RevokeOnPasswordChange::
         userModel: User::class,
         prefix: 'dpl_',
         revokeOnPasswordChange: $mode,
-        validateUser: fn ($user): bool => $user->verified_at !== null,
+        validateUser: fn ($user): bool => $user->email_verified_at !== null,
     ));
 }
 
