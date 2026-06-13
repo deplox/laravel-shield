@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "deplox/laravel-shield",
     "type": "library",
-    "description": "Opinionated auth for Laravel projects.",
+    "description": "Token-based authentication for Laravel — a modern, opinionated alternative to Sanctum.",
     "license": "MIT",
     "authors": [
         {

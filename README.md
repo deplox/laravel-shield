@@ -1,5 +1,9 @@
 # laravel-shield
 
+[![Tests](https://github.com/deplox/laravel-shield/actions/workflows/tests.yml/badge.svg)](https://github.com/deplox/laravel-shield/actions/workflows/tests.yml)
+[![License](https://img.shields.io/github/license/deplox/laravel-shield)](LICENSE)
+[![PHP](https://img.shields.io/badge/PHP-8.4%2B-blue)](https://www.php.net/)
+
 Token-based authentication for Laravel with session-first dynamic guard, automatic token hashing, configurable extension points, and optional polymorphic token support.
 
 ## Requirements
@@ -245,12 +249,22 @@ Tokens are stored as SHA256 hashes. The `token` attribute mutator automatically 
 ### Revoking Tokens
 
 ```php
+use Deplox\Shield\Actions\Logout;
+
 // Delete a specific token
 $token->delete();
 
-// Delete all tokens for a user
-$user->tokens()->delete();
+// Revoke all tokens for the current request (session or bearer)
+app(Logout::class)($request);
+
+// Revoke all tokens for a user
+app(Logout::class)->all($user);
+
+// Revoke all tokens except the current one ("logout other devices")
+app(Logout::class)->others($user, $currentToken);
 ```
+
+`Logout::all()` and `Logout::others()` dispatch a `TokenRevoked` event per revoked token, so audit listeners capture each revocation individually.
 
 ## Login & Logout
 
@@ -288,8 +302,10 @@ $logout = app(Logout::class);
 $logout($request);
 ```
 
-- **Bearer auth** (`$user->token` is set) — Deletes the token
+- **Bearer auth** (`$user->token` is set) — Deletes the current token, dispatches `TokenRevoked`
 - **Session auth** (`$user->token` is null) — Invalidates session, regenerates CSRF token
+
+For "logout all devices" and "logout other devices" flows, see [Revoking Tokens](#revoking-tokens).
 
 ## SPA / Stateful Authentication
 
@@ -397,6 +413,11 @@ Schedule::command('model:prune', ['--model' => \App\Models\Token::class])->daily
 
 Additionally, expired tokens are proactively deleted during authentication attempts, keeping the table clean between scheduled prune runs.
 
+Two pruning paths run in each cycle:
+
+1. **Tokens with an expiry** — pruned `pruneDays` days after `expires_at` (grace window for audit logs).
+2. **Tokens without an expiry** — pruned when `last_used_at` (or `created_at` if never used) is older than `pruneDays`. This prevents non-expiring tokens from accumulating indefinitely.
+
 ## API Resource
 
 The package includes `TokenResource` for API responses:
@@ -417,8 +438,9 @@ Fields:
 | `type`         | `bearer` or `remember`                                |
 | `token`        | Plain token (only present immediately after creation) |
 | `expired`      | Boolean                                               |
-| `expires_at`   | ISO 8601 Zulu string                                  |
-| `last_used_at` | ISO 8601 Zulu string                                  |
+| `expires_at`   | ISO 8601 Zulu string, or `null`                       |
+| `expires_in`   | Seconds until expiry; `null` if no expiry; `0` if already expired |
+| `last_used_at` | ISO 8601 Zulu string, or `null`                       |
 | `created_at`   | ISO 8601 Zulu string                                  |
 | `updated_at`   | ISO 8601 Zulu string                                  |
 
@@ -485,6 +507,7 @@ Shield validates that `userModel` implements `OwnsTokens`, so both modes pass va
 | Event                                     | When                                          | Payload                                              |
 | ----------------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
 | `Illuminate\Auth\Events\Attempting`       | Before token lookup                           | `guard: 'dynamic'`, `credentials: ['token' => ...]`  |
+| `Deplox\Shield\Events\TokenCreated`       | After a token is issued via `createToken()`   | `token: Model&IsAuthToken`                           |
 | `Deplox\Shield\Events\TokenAuthenticated` | After successful bearer auth                  | `token: Model&IsAuthToken`                           |
 | `Deplox\Shield\Events\TokenRevoked`       | After a token is intentionally revoked        | `token`, `user`, `reason: TokenRevocationReason`     |
 | `Deplox\Shield\Events\FailedLogin`        | After a failed `Login` action attempt         | `field`, `identifier`, `ip` — never the password     |
@@ -571,7 +594,7 @@ When `revokeOnPasswordChange` is `Bearer` (default) or `All`, Shield registers a
 | `TokenType`                 | `Bearer`, `Remember`                                   | Token model `type` cast, length resolution       |
 | `TokenLimitBehavior`        | `Reject`, `PruneOldest`                                | `Shield::$onTokenLimit`                          |
 | `RevokeOnPasswordChange`    | `All`, `Bearer`, `None`                                | `Shield::$revokeOnPasswordChange`                |
-| `TokenRevocationReason`     | `Logout`, `LogoutAll`, `PasswordReset`                 | `TokenRevoked` event payload                     |
+| `TokenRevocationReason`     | `Logout`, `LogoutAll`, `LogoutOther`, `PasswordReset`  | `TokenRevoked` event payload                     |
 
 ## Exceptions
 
