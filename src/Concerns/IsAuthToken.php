@@ -109,14 +109,32 @@ trait IsAuthToken
 
     /**
      * Get the prunable model query.
+     *
+     * Two paths:
+     *   1. Tokens with an expiry: pruned N days after they expired (grace window
+     *      for audit logs to record the expiry before the row disappears).
+     *   2. Tokens without an expiry: pruned when they have been idle for N days
+     *      (last_used_at <= cutoff, or never used and created <= cutoff).
      */
     public function prunable(): Builder
     {
-        $pruneDays = app(Shield::class)->pruneDays;
+        $cutoff = now()->subDays(app(Shield::class)->pruneDays);
 
         return static::query()
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', now()->subDays($pruneDays));
+            ->where(function (Builder $query) use ($cutoff): void {
+                $query->whereNotNull('expires_at')
+                    ->where('expires_at', '<=', $cutoff);
+            })
+            ->orWhere(function (Builder $query) use ($cutoff): void {
+                $query->whereNull('expires_at')
+                    ->where(function (Builder $query) use ($cutoff): void {
+                        $query->where('last_used_at', '<=', $cutoff)
+                            ->orWhere(function (Builder $query) use ($cutoff): void {
+                                $query->whereNull('last_used_at')
+                                    ->where('created_at', '<=', $cutoff);
+                            });
+                    });
+            });
     }
 
     protected function casts(): array
