@@ -21,6 +21,7 @@ test('resource includes all expected fields', function (): void {
         'type',
         'expired',
         'expires_at',
+        'expires_in',
         'last_used_at',
         'created_at',
         'updated_at',
@@ -81,6 +82,40 @@ test('resource includes expired boolean', function (): void {
 
     expect($activeResource['expired'])->toBeFalse()
         ->and($expiredResource['expired'])->toBeTrue();
+});
+
+test('resource expires_in is null when token has no expiry', function (): void {
+    $user = User::factory()->create();
+    $token = Token::factory()->for($user, 'owner')->create(['expires_at' => null]);
+
+    $resource = TokenResource::make($token)->toArray(request());
+
+    expect($resource['expires_in'])->toBeNull();
+});
+
+test('resource expires_in returns positive seconds for active token', function (): void {
+    $user = User::factory()->create();
+    Date::setTestNow('2025-06-15 12:00:00');
+
+    $token = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => Date::parse('2025-06-15 13:00:00'),
+    ]);
+
+    $resource = TokenResource::make($token)->toArray(request());
+
+    expect($resource['expires_in'])->toBe(3600);
+});
+
+test('resource expires_in returns zero for expired token', function (): void {
+    $user = User::factory()->create();
+
+    $token = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => Date::now()->subHour(),
+    ]);
+
+    $resource = TokenResource::make($token)->toArray(request());
+
+    expect($resource['expires_in'])->toBe(0);
 });
 
 test('resource type field returns token type', function (): void {

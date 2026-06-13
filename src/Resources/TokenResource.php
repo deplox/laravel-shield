@@ -15,6 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * @property-read string|null $plain
  * @property-read bool $expired
  * @property-read \Carbon\CarbonImmutable|null $expires_at
+ * @property-read int|null $expires_in  Seconds until expiry; null when no expiry; 0 when already expired.
  * @property-read \Carbon\CarbonImmutable|null $last_used_at
  * @property-read \Carbon\CarbonImmutable|null $created_at
  * @property-read \Carbon\CarbonImmutable|null $updated_at
@@ -34,6 +35,7 @@ final class TokenResource extends JsonResource
             'token' => $this->when((bool) $this->plain, $this->plain),
             'expired' => $this->expired,
             'expires_at' => $this->expires_at?->toIso8601ZuluString(),
+            'expires_in' => $this->expires_at ? max(0, (int) now()->diffInSeconds($this->expires_at, false)) : null,
             'last_used_at' => $this->last_used_at?->toIso8601ZuluString(),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),
