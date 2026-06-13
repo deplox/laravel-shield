@@ -6,7 +6,7 @@ namespace Deplox\Shield\Concerns;
 
 use Deplox\Shield\Enums\TokenType;
 use Deplox\Shield\Shield;
-use Deplox\Support\Database\Eloquent\Concerns\HasExpiration;
+use Deplox\Shield\Concerns\HasExpiration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
