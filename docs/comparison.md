@@ -40,11 +40,18 @@ The `token()` Attribute mutator hashes on write regardless of call site. Impossi
 **Clear improvement.** Sanctum fork writes on every request or disables entirely (boolean toggle).
 The configurable debounce cuts write volume dramatically with negligible accuracy loss.
 
-### 4. MassPrunable vs PruneExpired command
+### 4. MassPrunable vs PruneExpired command — with idle token pruning
 
-**Improvement.** Uses Laravel's built-in `model:prune` infrastructure. Less code to maintain, integrates with existing scheduling.
+**Clear improvement.** Uses Laravel's built-in `model:prune` infrastructure. Less code to maintain, integrates with existing scheduling.
 Sanctum fork's PruneExpired has dual-path pruning logic (expires_at + created_at based on global expiration config) that's more complex
 but also tied to the now-removed global expiration concept.
+
+laravel-shield's `prunable()` also prunes **non-expiring idle tokens** — tokens without an `expires_at` that haven't been used
+(or were never used) within `pruneDays` days. Sanctum has no equivalent: non-expiring Sanctum tokens accumulate forever.
+The two pruning paths are:
+
+1. Tokens with expiry: removed `pruneDays` after their `expires_at` (grace window for audit logs).
+2. Tokens without expiry: removed when `last_used_at <= cutoff` or (`last_used_at IS NULL` AND `created_at <= cutoff`).
 
 ### 5. AuthenticateToken as standalone action class
 
@@ -82,17 +89,36 @@ Simpler than Sanctum's `TransientToken` wrapper and avoids an extra class.
 **Improvement.** Non-sequential, no information leakage about total count or creation order.
 Good default for security-sensitive entities like tokens.
 
-### 10. Login event dispatching
+### 10. TokenCreated event for audit logging
+
+**Clear improvement.** Dispatched by `createToken()` on every token issuance. Sanctum dispatches nothing on token creation.
+Together with `TokenAuthenticated`, `TokenRevoked` (with typed `TokenRevocationReason`), and `FailedLogin`, laravel-shield
+provides a complete audit trail: creation → authentication → revocation, all with enough context to log safely without
+exposing credentials.
+
+### 11. Concurrent-safe token limit enforcement
+
+**Clear improvement.** `enforceTokenLimit()` wraps `createToken()` in a `DB::transaction` and uses `lockForUpdate()` on the
+token count query when `maxTokensPerUser` is configured. This prevents TOCTOU races where two simultaneous login requests could
+both pass the count check before either commits. Sanctum has no token limit concept at all.
+
+### 12. `revokeOtherTokens()` — logout other devices
+
+**Clear improvement.** `Logout::others($user, $currentToken)` revokes all tokens except the one currently in use, dispatching
+a `TokenRevoked(LogoutOther)` event per revoked token. This is the standard "logout all other devices" flow. Sanctum has
+no equivalent; callers must manually query and delete.
+
+### 13. Login event dispatching
 
 **Lateral improvement.** laravel-shield dispatches Laravel's standard `Login` event for both session and bearer auth,
 integrating tightly with the auth event system. Sanctum only fires `TokenAuthenticated`.
 Whether this is better depends on whether listeners expect `Login` for API tokens.
 
-### 11. Naming
+### 14. Naming
 
 **Minor improvement.** `StatefulFrontend` vs `EnsureFrontendRequestsAreStateful`, `DynamicGuard` vs `Guard`. Shorter, equally descriptive.
 
-### 12. Hash-based token lookup (no pipe-delimited format)
+### 15. Hash-based token lookup (no pipe-delimited format)
 
 > ADR: [006 — Hash Lookup](decisions/006-hash-lookup.md)
 
@@ -101,7 +127,7 @@ Sanctum's format was a workaround for auto-incrementing integer PKs where a full
 With ULIDs, a hash-based lookup with a DB index on the token column is the correct approach,
 no information leakage from the ID prefix, simpler token format, and equivalent performance.
 
-### 13. Proactive expired token cleanup on auth
+### 16. Proactive expired token cleanup on auth
 
 > ADR: [011 — Debounced last_used_at](decisions/011-debounced-last-used.md) *(covers proactive cleanup in context)*
 
@@ -109,21 +135,21 @@ no information leakage from the ID prefix, simpler token format, and equivalent 
 Expired tokens are by definition invalid -- deleting them immediately reduces table size and speeds up future lookups.
 The `pruneDays` config handles bulk cleanup of tokens that never get hit again.
 
-### 14. Container-bound config (no static state)
+### 17. Container-bound config (no static state)
 
 > ADR: [001 — Shield over Config](decisions/001-shield-over-config.md)
 
 **Clear improvement.** `Shield::configure()` accepts the `Application` instance and binds `Shield` as a singleton directly into the container.
 No static mutable state, no `$pendingConfig` bridging — standard Laravel DI from the start.
 
-### 15. Configurable middleware stack
+### 18. Configurable middleware stack
 
 > ADR: [014 — Configurable Middleware](decisions/014-configurable-middleware.md)
 
 **Clear improvement.** `Shield::$middlewares` accepts overrides for `encrypt_cookies`, `validate_csrf_token`, and `authenticate_session`.
 Set a key to `null` to remove it. Sanctum's fork hardcodes the middleware list with no override mechanism.
 
-### 16. Extension callbacks via Shield closures
+### 19. Extension callbacks via Shield closures
 
 > ADR: [010 — Extension Callbacks](decisions/010-extension-callbacks.md)
 
@@ -135,7 +161,7 @@ Set a key to `null` to remove it. Sanctum's fork hardcodes the middleware list w
 
 Cleaner than Sanctum's static method approach: closures are type-safe, non-nullable with sensible defaults, and scoped to the config instance.
 
-### 17. Environment-driven stateful domains
+### 20. Environment-driven stateful domains
 
 > ADR: [015 — Stateful Domains Config](decisions/015-stateful-domains-config.md)
 
@@ -165,27 +191,35 @@ Both traits share a common `OwnsTokens` contract and `CreatesTokens` trait, so `
 
 ## Summary
 
-| Item                            | Category               |
-| ------------------------------- | ---------------------- |
-| IsAuthToken contract + trait    | Clear improvement      |
-| Auto-hash mutator               | Clear improvement      |
-| Debounced writes                | Clear improvement      |
-| MassPrunable                    | Clear improvement      |
-| Action class                    | Clear improvement      |
-| Shield entry point              | Clear improvement      |
-| TokenType enum                  | Clear improvement      |
-| Null token (no TransientToken)  | Clear improvement      |
-| ULIDs                           | Clear improvement      |
-| Hash-based lookup               | Clear improvement      |
-| Proactive expired token cleanup | Clear improvement      |
-| Container-bound config          | Clear improvement      |
-| Configurable middleware stack   | Clear improvement      |
-| Extension callbacks             | Clear improvement      |
-| Naming                          | Minor improvement      |
-| Login event integration         | Minor improvement      |
-| Polymorphic tokens (opt-in)     | Clear improvement      |
-| Env-driven stateful domains     | Improvement            |
+| Item                                  | Category               |
+| ------------------------------------- | ---------------------- |
+| IsAuthToken contract + trait          | Clear improvement      |
+| Auto-hash mutator                     | Clear improvement      |
+| Debounced writes                      | Clear improvement      |
+| MassPrunable + idle token pruning     | Clear improvement      |
+| Action class                          | Clear improvement      |
+| Shield entry point                    | Clear improvement      |
+| TokenType enum                        | Clear improvement      |
+| Null token (no TransientToken)        | Clear improvement      |
+| ULIDs                                 | Clear improvement      |
+| Hash-based lookup                     | Clear improvement      |
+| Proactive expired token cleanup       | Clear improvement      |
+| Container-bound config                | Clear improvement      |
+| Configurable middleware stack         | Clear improvement      |
+| Extension callbacks                   | Clear improvement      |
+| TokenCreated/Revoked/Auth audit trail | Clear improvement      |
+| Concurrent-safe token limit           | Clear improvement      |
+| `revokeOtherTokens()` (logout others) | Clear improvement      |
+| `expires_in` on TokenResource         | Clear improvement      |
+| Naming                                | Minor improvement      |
+| Login event integration               | Minor improvement      |
+| Polymorphic tokens (opt-in)           | Clear improvement      |
+| Env-driven stateful domains           | Improvement            |
 
 **Bottom line:** The architectural foundation of laravel-shield is genuinely stronger.
-DI over statics, contracts over concrete models, action classes, ULIDs, debounced writes, auto-hashing, built-in pruning.
-These are real improvements. No regressions remain — polymorphic tokens are now supported as an opt-in alternative.
+DI over statics, contracts over concrete models, action classes, ULIDs, debounced writes, auto-hashing, idle+expired pruning,
+concurrent-safe token limits, full audit event trail, logout-other-devices. No regressions remain.
+
+**Open gaps vs. ecosystem (Fortify/WebAuthn):** Two-Factor Authentication (TOTP/passkeys), token creation metadata
+(IP/device at issuance), and a wired-up "remember me" login flow. These require new migrations or external modules
+and are tracked as the next iteration.
