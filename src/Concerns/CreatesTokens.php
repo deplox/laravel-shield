@@ -8,9 +8,11 @@ use DateTimeInterface;
 use Deplox\Shield\Contracts\IsAuthToken as IsAuthTokenContract;
 use Deplox\Shield\Enums\TokenLimitBehavior;
 use Deplox\Shield\Enums\TokenType;
+use Deplox\Shield\Events\TokenCreated;
 use Deplox\Shield\Exceptions\TokenLimitExceededException;
 use Deplox\Shield\Shield;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
@@ -21,22 +23,33 @@ trait CreatesTokens
     {
         $shield = app(Shield::class);
 
-        $this->enforceTokenLimit($shield);
-
         $expiresAt ??= $shield->defaultTokenExpiration !== null
             ? now()->addSeconds($shield->defaultTokenExpiration)
             : null;
 
+        // Generate entropy outside the transaction — random_bytes() needs no lock.
         $random = $type->generate();
 
-        $token = $this->tokens()->create([
-            'name' => $name,
-            'type' => $type,
-            'token' => $random,
-            'expires_at' => $expiresAt,
-        ]);
+        $create = function () use ($shield, $type, $expiresAt, $name, $random): Model&IsAuthTokenContract {
+            $this->enforceTokenLimit($shield);
+
+            return $this->tokens()->create([
+                'name' => $name,
+                'type' => $type,
+                'token' => $random,
+                'expires_at' => $expiresAt,
+            ]);
+        };
+
+        // Wrap in a transaction only when a limit is configured so that the
+        // lockForUpdate() in enforceTokenLimit() prevents TOCTOU races.
+        $token = $shield->maxTokensPerUser !== null
+            ? DB::transaction($create)
+            : $create();
 
         $token->setPlain($shield->decorateToken($random));
+
+        event(new TokenCreated($token));
 
         return $token;
     }
@@ -55,7 +68,9 @@ trait CreatesTokens
             return;
         }
 
-        $current = $this->tokens()->count();
+        // Pessimistic lock prevents concurrent createToken() calls from both passing
+        // the count check before either commits (requires the caller's transaction).
+        $current = $this->tokens()->lockForUpdate()->count();
 
         if ($current < $shield->maxTokensPerUser) {
             return;

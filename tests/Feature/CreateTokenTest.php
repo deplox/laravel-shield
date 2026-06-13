@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Event;
 use Deplox\Shield\Enums\TokenType;
+use Deplox\Shield\Events\TokenCreated;
 use Deplox\Shield\Shield;
 use Deplox\Shield\Tests\Fixtures\Token;
 use Deplox\Shield\Tests\Fixtures\User;
@@ -70,6 +72,18 @@ test('createToken with Remember type produces correct token length', function ()
         ->toBeString()
         ->toStartWith('dpl_')
         ->toHaveLength(72);
+});
+
+test('createToken dispatches TokenCreated event', function (): void {
+    Event::fake([TokenCreated::class]);
+
+    $user = User::factory()->create();
+    $token = $user->createToken();
+
+    Event::assertDispatched(
+        TokenCreated::class,
+        fn (TokenCreated $e): bool => $e->token->getKey() === $token->getKey(),
+    );
 });
 
 test('createToken with no default expiration creates token without expiry', function (): void {
