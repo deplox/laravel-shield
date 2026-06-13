@@ -61,6 +61,31 @@ final class Logout
         return $user->tokens()->delete();
     }
 
+    /**
+     * Revoke every token belonging to the user except the given one.
+     *
+     * Returns the number of tokens revoked. Dispatches a TokenRevoked event
+     * per token so audit listeners can record each revocation.
+     */
+    public function others(Authenticatable $user, Model&IsAuthToken $currentToken, TokenRevocationReason $reason = TokenRevocationReason::LogoutOther): int
+    {
+        if (! method_exists($user, 'tokens')) {
+            return 0;
+        }
+
+        $keyName = $currentToken->getKeyName();
+        $keyValue = $currentToken->getKey();
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Model&IsAuthToken> $tokens */
+        $tokens = $user->tokens()->where($keyName, '!=', $keyValue)->get();
+
+        foreach ($tokens as $token) {
+            $this->dispatchRevoked($token, $user, $reason);
+        }
+
+        return $user->tokens()->where($keyName, '!=', $keyValue)->delete();
+    }
+
     private function dispatchRevoked(Model&IsAuthToken $token, Authenticatable $user, TokenRevocationReason $reason): void
     {
         $this->dispatcher?->dispatch(new TokenRevoked($token, $user, $reason));

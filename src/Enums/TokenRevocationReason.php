@@ -11,5 +11,6 @@ enum TokenRevocationReason: string
 {
     case Logout = 'logout';
     case LogoutAll = 'logout-all';
+    case LogoutOther = 'logout-other';
     case PasswordReset = 'password-reset';
 }
