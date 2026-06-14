@@ -1,0 +1,11 @@
+* text=auto
+
+/.github export-ignore
+/.gitattributes export-ignore
+/CLAUDE.md export-ignore
+/phpunit.xml export-ignore
+/tests export-ignore
+vendor/* linguist-vendored
+node_modules/* linguist-vendored
+public/build/* linguist-generated
+*.blade.php linguist-language=PHP

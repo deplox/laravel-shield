@@ -12,7 +12,8 @@
     ],
     "require": {
         "php": "^8.4",
-"laravel/framework": "^13.0"
+        "ext-intl": "*",
+        "laravel/framework": "^13.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",

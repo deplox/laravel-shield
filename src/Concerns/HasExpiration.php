@@ -6,7 +6,6 @@ namespace Deplox\Shield\Concerns;
 
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
@@ -48,15 +47,13 @@ trait HasExpiration
     }
 
     /** @param Builder<static> $query */
-    #[Scope]
-    public function whereExpired(Builder $query): void
+    public function scopeWhereExpired(Builder $query): void
     {
         $query->whereNotNull('expires_at')->where('expires_at', '<=', now());
     }
 
     /** @param Builder<static> $query */
-    #[Scope]
-    public function whereNotExpired(Builder $query): void
+    public function scopeWhereNotExpired(Builder $query): void
     {
         $query->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
@@ -65,7 +62,7 @@ trait HasExpiration
     protected function expired(): Attribute
     {
         return Attribute::make(
-            get: fn (): bool => $this->expires_at !== null && $this->expires_at->isPast(),
+            get: fn (): bool => $this->expires_at !== null && ! $this->expires_at->isFuture(),
             set: fn (bool $expired): array => [
                 'expires_at' => $expired ? now()->toDateTimeString() : null,
             ],

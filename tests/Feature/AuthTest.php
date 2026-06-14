@@ -147,8 +147,7 @@ test('logout revokes the bearer token', function (): void {
         ->getJson('/auth-test')
         ->assertSuccessful();
 
-    $logout = new Logout;
-    $logout(request());
+    app(Logout::class)(request());
 
     $this->assertDatabaseMissing('tokens', ['id' => $token->getKey()]);
 });
@@ -168,8 +167,7 @@ test('logout invalidates session for session-authenticated users', function (): 
     $request->setUserResolver(fn () => $user);
     $request->setLaravelSession($session);
 
-    $logout = new Logout;
-    $logout($request);
+    app(Logout::class)($request);
 
     expect($session->get('test_key'))->toBeNull()
         ->and($session->getId())->not->toBe($originalId);

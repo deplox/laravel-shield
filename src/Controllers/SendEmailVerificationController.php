@@ -18,7 +18,7 @@ final readonly class SendEmailVerificationController
         $user = $request->user();
 
         if (! $user instanceof MustVerifyEmail) {
-            return new JsonResponse(['status' => 'unauthenticated'], 401);
+            return new JsonResponse(['status' => 'not-applicable'], 422);
         }
 
         $sent = $action($user);

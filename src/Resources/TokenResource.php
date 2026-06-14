@@ -29,7 +29,7 @@ final class TokenResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
+            'user_id' => $this->user_id ?? $this->owner_id,
             'name' => $this->name,
             'type' => $this->type,
             'token' => $this->when((bool) $this->plain, $this->plain),

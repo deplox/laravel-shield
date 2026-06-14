@@ -134,3 +134,56 @@ test('owner returns the associated user', function (): void {
     expect($token->owner)->not->toBeNull()
         ->and($token->owner->getKey())->toBe($user->getKey());
 });
+
+test('prunable includes idle token never used and created before cutoff', function (): void {
+    $user = User::factory()->create();
+
+    $idle = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => null,
+        'created_at' => now()->subDays(31),
+    ]);
+
+    $prunableIds = (new Token)->prunable()->pluck('id')->all();
+
+    expect($prunableIds)->toContain($idle->getKey());
+});
+
+test('prunable includes token last used before cutoff with no expiry', function (): void {
+    $user = User::factory()->create();
+
+    $stale = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => now()->subDays(31),
+    ]);
+
+    $prunableIds = (new Token)->prunable()->pluck('id')->all();
+
+    expect($prunableIds)->toContain($stale->getKey());
+});
+
+test('prunable excludes idle token never used but created within cutoff', function (): void {
+    $user = User::factory()->create();
+
+    $fresh = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => null,
+    ]);
+
+    $prunableIds = (new Token)->prunable()->pluck('id')->all();
+
+    expect($prunableIds)->not->toContain($fresh->getKey());
+});
+
+test('prunable excludes token with no expiry used recently', function (): void {
+    $user = User::factory()->create();
+
+    $active = Token::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => now()->subDays(5),
+    ]);
+
+    $prunableIds = (new Token)->prunable()->pluck('id')->all();
+
+    expect($prunableIds)->not->toContain($active->getKey());
+});

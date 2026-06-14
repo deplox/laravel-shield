@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tokens', function (Blueprint $table) {
+        Schema::create('morph_tokens', function (Blueprint $table): void {
             $table->ulid('id')->primary();
             $table->ulidMorphs('owner');
             $table->string('name')->nullable();
@@ -24,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('tokens');
+        Schema::dropIfExists('morph_tokens');
     }
 };
