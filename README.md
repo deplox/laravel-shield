@@ -44,7 +44,7 @@ public function register(): void
 | `guards`                 | `list<string>` | `['session']`         | Auth guards to try before falling back to bearer token                      |
 | `statefulDomains`        | `list<string>` | `[]`                  | Domains allowed to use session cookie authentication                        |
 | `prefix`                 | `string`       | `''`                  | Token prefix for secret scanning (e.g. `'dpl_'`)                            |
-| `defaultTokenExpiration` | `?int`         | `2592000` (30 days)   | Default token lifetime in seconds. `null` = no default, `0` = no expiration |
+| `defaultTokenExpiration` | `?int`         | `2592000` (30 days)   | Default token lifetime in seconds. `null` = tokens have no expiration by default |
 | `pruneDays`              | `int`          | `30`                  | Days to keep expired tokens before pruning                                  |
 | `lastUsedAtDebounce`     | `int`          | `300`                 | Seconds between `last_used_at` writes                                       |
 | `maxTokensPerUser`       | `?int`         | `null`                | Max tokens per user (`null` = unlimited)                                    |
@@ -212,8 +212,8 @@ $token = $user->createToken(TokenType::Remember);
 // Custom expiration
 $token = $user->createToken(expiresAt: now()->addYear());
 
-// No expiration (pass a zero-second duration or configure defaultTokenExpiration: 0)
-$token = $user->createToken(expiresAt: now()->addSeconds(0));
+// No expiration (override the default by passing null explicitly)
+$token = $user->createToken(expiresAt: null);
 ```
 
 The `$token->plain` property contains the full decorated token (prefix + random + checksum). This is the value to return to the client. It is only available immediately after creation.
@@ -581,7 +581,7 @@ protected $policies = [
 ];
 ```
 
-Then use `$this->authorize('delete', $token)` in controllers. The policy methods (`view`, `update`, `delete`) check `$user->id === $token->getOwnerKey()`.
+Then use `$this->authorize('delete', $token)` in controllers. All policy methods (`list`, `view`, `create`, `delete`) verify that the authenticated user is the same model as the `$user` parameter — i.e. `$auth->is($user)`.
 
 ## Listener: `RevokeTokensOnPasswordReset`
 
@@ -604,7 +604,31 @@ When `revokeOnPasswordChange` is `Bearer` (default) or `All`, Shield registers a
 
 ## Testing
 
-See [docs/testing.md](docs/testing.md) for testing helpers and patterns.
+### ActingAsToken helper
+
+Use `ActingAsToken` in your test cases to authenticate as a token-bearing user without manually creating and formatting the token:
+
+```php
+use Deplox\Shield\Concerns\ActingAsToken;
+
+class MyTest extends TestCase
+{
+    use ActingAsToken;
+
+    public function test_example(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAsToken($user)
+            ->getJson('/api/profile')
+            ->assertOk();
+    }
+}
+```
+
+`actingAsToken()` creates a bearer token for the user, calls `withToken()` with the decorated value, and returns `$this` for chaining. An optional `$type` and `$expiresAt` are supported.
+
+See [docs/testing.md](docs/testing.md) for additional testing helpers and patterns.
 
 ## Architecture Decisions
 

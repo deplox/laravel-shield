@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Deplox\Shield\Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Date;
 use Deplox\Shield\Contracts\IsAuthToken;
 use Deplox\Shield\Enums\TokenType;
 use Deplox\Shield\Shield;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Date;
 
 /**
  * @extends Factory<Model>

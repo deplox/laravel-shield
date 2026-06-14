@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 final class Logout
 {
     public function __construct(
-        private ?DispatcherContract $dispatcher = null,
+        private DispatcherContract $dispatcher,
     ) {}
 
     /**
@@ -88,6 +88,6 @@ final class Logout
 
     private function dispatchRevoked(Model&IsAuthToken $token, Authenticatable $user, TokenRevocationReason $reason): void
     {
-        $this->dispatcher?->dispatch(new TokenRevoked($token, $user, $reason));
+        $this->dispatcher->dispatch(new TokenRevoked($token, $user, $reason));
     }
 }

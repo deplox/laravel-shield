@@ -158,3 +158,54 @@ test('createToken with explicit type and name works for morph tokens', function 
     expect($token->type)->toBe(TokenType::Remember)
         ->and($token->name)->toBe('Morph Device');
 });
+
+test('morph token prunable includes expired tokens older than pruneDays', function (): void {
+    $user = MorphUser::factory()->create();
+
+    $old = MorphToken::factory()->for($user, 'owner')->create([
+        'expires_at' => Date::now()->subDays(31),
+    ]);
+
+    $ids = (new MorphToken)->prunable()->pluck('id')->all();
+
+    expect($ids)->toContain($old->getKey());
+});
+
+test('morph token prunable excludes recently expired tokens within grace window', function (): void {
+    $user = MorphUser::factory()->create();
+
+    $recent = MorphToken::factory()->for($user, 'owner')->create([
+        'expires_at' => Date::now()->subDays(5),
+    ]);
+
+    $ids = (new MorphToken)->prunable()->pluck('id')->all();
+
+    expect($ids)->not->toContain($recent->getKey());
+});
+
+test('morph token prunable includes idle no-expiry token past cutoff', function (): void {
+    $user = MorphUser::factory()->create();
+
+    $idle = MorphToken::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => null,
+        'created_at' => Date::now()->subDays(31),
+    ]);
+
+    $ids = (new MorphToken)->prunable()->pluck('id')->all();
+
+    expect($ids)->toContain($idle->getKey());
+});
+
+test('morph token prunable excludes fresh no-expiry token', function (): void {
+    $user = MorphUser::factory()->create();
+
+    $fresh = MorphToken::factory()->for($user, 'owner')->create([
+        'expires_at' => null,
+        'last_used_at' => null,
+    ]);
+
+    $ids = (new MorphToken)->prunable()->pluck('id')->all();
+
+    expect($ids)->not->toContain($fresh->getKey());
+});

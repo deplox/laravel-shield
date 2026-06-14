@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Deplox\Shield\Middlewares;
 
 use Closure;
+use Deplox\Shield\Shield;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Deplox\Shield\Shield;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AuthenticateSession
@@ -41,7 +41,7 @@ final class AuthenticateSession
             ->filter(fn ($guard) => $guard instanceof SessionGuard);
 
         $shouldLogout = $guards->filter(
-            fn ($guard, $driver) => $request->session()->has('password_hash_'.$driver)
+            fn ($_guard, $driver) => $request->session()->has('password_hash_'.$driver)
         )->filter(
             fn ($guard, $driver) => ! $this->validatePasswordHash(
                 $guard,

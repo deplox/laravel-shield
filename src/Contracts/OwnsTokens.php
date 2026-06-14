@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Deplox\Shield\Contracts;
 
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Model;
 use Deplox\Shield\Enums\TokenType;
+use Illuminate\Database\Eloquent\Model;
 
 interface OwnsTokens
 {

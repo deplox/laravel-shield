@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Deplox\Shield\Concerns;
 
+use Deplox\Shield\Shield;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Deplox\Shield\Shield;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model

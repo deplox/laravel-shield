@@ -6,11 +6,17 @@ namespace Deplox\Shield\Tests\Fixtures;
 
 use Deplox\Shield\Concerns\IsAuthToken;
 use Deplox\Shield\Contracts\IsAuthToken as IsAuthTokenContract;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+#[UseFactory(MorphTokenFactory::class)]
 final class MorphToken extends Model implements IsAuthTokenContract
 {
+    /** @use HasFactory<MorphTokenFactory> */
+    use HasFactory;
+
     use IsAuthToken;
 
     protected $table = 'morph_tokens';

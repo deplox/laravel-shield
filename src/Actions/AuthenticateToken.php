@@ -45,7 +45,7 @@ final class AuthenticateToken
             return null;
         }
 
-        if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+        if ($accessToken->expired) {
             $accessToken->delete();
 
             return null;

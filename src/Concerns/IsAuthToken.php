@@ -68,6 +68,7 @@ trait IsAuthToken
             'type',
             'token',
             'expires_at',
+            'last_used_at',
         ]);
 
         $this->hidden = array_merge($this->hidden, [
