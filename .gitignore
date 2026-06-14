@@ -3,5 +3,4 @@
 /.phpunit.cache
 .phpunit.result.cache
 .DS_Store
-graphify-out/cost.json
-graphify-out/cache/
+graphify-out/
