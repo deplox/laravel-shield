@@ -42,7 +42,7 @@ public function register(): void
 | `tokenModel`             | `class-string` | *(required)*          | Your token model class                                                      |
 | `userModel`              | `class-string` | *(required)*          | Your authenticatable user model class                                       |
 | `guards`                 | `list<string>` | `['session']`         | Auth guards to try before falling back to bearer token                      |
-| `statefulDomains`        | `list<string>` | `[]`                  | Domains allowed to use session cookie authentication                        |
+| `statefulDomains`        | `?list<string>` | `null`                | Stateful domains; `null` reads from `config/shield.php`. Pass an explicit list to override the config. |
 | `prefix`                 | `string`       | `''`                  | Token prefix for secret scanning (e.g. `'dpl_'`)                            |
 | `defaultTokenExpiration` | `?int`         | `2592000` (30 days)   | Default token lifetime in seconds. `null` = tokens have no expiration by default |
 | `pruneDays`              | `int`          | `30`                  | Days to keep expired tokens before pruning                                  |
@@ -76,6 +76,26 @@ Shield::configure($this->app, new Shield(
     validateUser: fn (User $user): bool => $user->verified_at !== null,
 ));
 ```
+
+### Config File
+
+For production deployments, publish the config file to manage stateful domains via an environment variable:
+
+```bash
+php artisan vendor:publish --tag=laravel-shield-config
+```
+
+This creates `config/shield.php` with two options:
+
+- **`SHIELD_STATEFUL_DOMAINS`** — comma-separated list of stateful domains. The defaults already include `localhost`, `127.0.0.1`, `::1`, and the host derived from `APP_URL`:
+
+  ```env
+  SHIELD_STATEFUL_DOMAINS=app.example.com,api.example.com
+  ```
+
+- **`stateful_subdomains`** — set to `true` in the config file to treat all subdomains of a configured domain (e.g. `*.example.com`) as stateful. Defaults to `false`.
+
+When `statefulDomains` is `null` in the `Shield` constructor (the default), the package reads from this config file. Pass an explicit list to bypass the config file entirely — useful in tests or when co-locating domain config with the service provider.
 
 ## Database Setup
 
@@ -309,7 +329,11 @@ For "logout all devices" and "logout other devices" flows, see [Revoking Tokens]
 
 ## SPA / Stateful Authentication
 
-For single-page applications, configure `statefulDomains` to enable session cookie authentication for API routes:
+For single-page applications, stateful session cookie authentication can be configured two ways:
+
+**Via the config file** (recommended for production): publish `config/shield.php` and set `SHIELD_STATEFUL_DOMAINS` — the `APP_URL` host is automatically included in the defaults. See [Config File](#config-file).
+
+**Via the constructor** (useful for tests or explicit overrides):
 
 ```php
 Shield::configure($this->app, new Shield(

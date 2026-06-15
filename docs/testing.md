@@ -118,13 +118,12 @@ $this->withToken($plainToken, 'Bearer')
 
 ### Testing Expired Tokens
 
-```php
-$token = Token::factory()->for($user, 'owner')->create([
-    'expires_at' => now()->subDay(),
-]);
+Use `createToken()` with a past expiry so the `plain` property is populated and you're testing with the actual token value:
 
-// Token should be rejected
-$this->withToken($token->plain ?? 'any', 'Bearer')
+```php
+$token = $user->createToken(expiresAt: now()->subDay());
+
+$this->withToken($token->plain, 'Bearer')
     ->getJson('/api/user')
     ->assertUnauthorized();
 ```
