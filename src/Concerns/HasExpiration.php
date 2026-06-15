@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
+ * @property \Carbon\CarbonImmutable|null $expires_at
  */
 trait HasExpiration
 {

@@ -10,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * @property-read string $id
  * @property-read string $user_id
+ * @property-read string|null $owner_id
  * @property-read string|null $name
  * @property-read \Deplox\Shield\Enums\TokenType $type
  * @property-read string|null $plain

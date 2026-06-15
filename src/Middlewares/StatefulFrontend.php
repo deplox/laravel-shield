@@ -69,6 +69,7 @@ final class StatefulFrontend
     /**
      * Get the middleware that should be applied to requests from the first-party SPA (frontend).
      */
+    /** @return list<string> */
     private function frontendMiddleware(): array
     {
         return array_values(array_filter(array_unique([

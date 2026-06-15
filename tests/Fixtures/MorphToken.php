@@ -24,6 +24,7 @@ final class MorphToken extends Model implements IsAuthTokenContract
     /**
      * Override the concern's BelongsTo owner() with a polymorphic relationship.
      */
+    /** @return MorphTo<\Illuminate\Database\Eloquent\Model, $this> */
     public function owner(): MorphTo
     {
         return $this->morphTo('owner');

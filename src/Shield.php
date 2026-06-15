@@ -50,7 +50,7 @@ final class Shield
 
     /**
      * @param  class-string<\Illuminate\Database\Eloquent\Model>  $tokenModel
-     * @param  class-string<Authenticatable>  $userModel
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $userModel
      * @param  list<string>  $guards
      * @param  ?list<string>  $statefulDomains  Explicit domains override config; null reads from config('shield.stateful')
      * @param  ?int  $defaultTokenExpiration  Default token expiration in seconds (null = no default, 0 = no expiration)
@@ -145,6 +145,7 @@ final class Shield
      * Call this from your AppServiceProvider::boot() if you want the package's
      * default controllers; omit the call to wire your own routes.
      */
+    /** @param array<int, string> $middleware */
     public static function registerPasswordResetRoutes(string $prefix = 'password', array $middleware = ['api']): void
     {
         Route::middleware($middleware)->prefix($prefix)->group(function (): void {
@@ -163,6 +164,7 @@ final class Shield
      * The verify route requires a valid signed URL — generate it via
      * URL::temporarySignedRoute('verification.verify', $expiry, [...]).
      */
+    /** @param array<int, string> $middleware */
     public static function registerEmailVerificationRoutes(string $prefix = 'email', array $middleware = ['api']): void
     {
         // Resend route requires authentication; verify route is protected by signed URL only.

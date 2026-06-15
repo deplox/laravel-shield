@@ -1,0 +1,39 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    phpVersion: 80400
+    level: 8
+    paths:
+        - src
+        - tests/Fixtures
+    ignoreErrors:
+        # ActingAsToken is a testing utility trait for package consumers; it is not used internally.
+        - identifier: trait.unused
+          path: src/Concerns/ActingAsToken.php
+        # tokens()->create() returns Model; token model IS IsAuthToken per Shield::validateModels().
+        - identifier: return.type
+          path: src/Concerns/CreatesTokens.php
+        # DateTimeInterface assigned to $expires_at; Eloquent casts to CarbonImmutable at model layer.
+        - identifier: assign.propertyType
+          path: src/Concerns/HasExpiration.php
+        # PHPStan cannot substitute $this across trait/interface boundaries for Eloquent relation generics.
+        - identifier: method.childReturnType
+          path: src/Concerns/HasTokens.php
+        - identifier: method.childReturnType
+          path: src/Concerns/HasMorphTokens.php
+        # owner(): $this(IsAuthToken) vs $this(Token) mismatch; prunable(): Builder<static> PHPStan limitation.
+        - identifier: method.childReturnType
+          path: src/Concerns/IsAuthToken.php
+        - identifier: return.type
+          path: src/Concerns/IsAuthToken.php
+        # $this in interfaces is not recognized as Model subtype for Eloquent relation generics.
+        - identifier: generics.notSubtype
+          path: src/Contracts/HasTokens.php
+        - identifier: generics.notSubtype
+          path: src/Contracts/HasMorphTokens.php
+        - identifier: generics.notSubtype
+          path: src/Contracts/IsAuthToken.php
+        # MorphTo extends BelongsTo — valid covariant return type override; PHPStan rejects due to non-covariant generics.
+        - identifier: method.childReturnType
+          path: tests/Fixtures/MorphToken.php

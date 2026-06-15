@@ -15,11 +15,13 @@ trait HasTokens
 {
     use CreatesTokens;
 
+    /** @return HasOne<\Illuminate\Database\Eloquent\Model, $this> */
     public function token(): HasOne
     {
         return $this->tokens()->one()->latestOfMany();
     }
 
+    /** @return HasMany<\Illuminate\Database\Eloquent\Model, $this> */
     public function tokens(): HasMany
     {
         return $this->hasMany(app(Shield::class)->tokenModel);
