@@ -50,7 +50,9 @@ final readonly class ResetPassword
                     'remember_token' => Str::random(60),
                 ])->save();
 
-                $this->dispatcher->dispatch(new PasswordReset($user));
+                if ($user instanceof \Illuminate\Contracts\Auth\Authenticatable) {
+                    $this->dispatcher->dispatch(new PasswordReset($user));
+                }
             },
         );
     }

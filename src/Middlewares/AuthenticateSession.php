@@ -67,14 +67,12 @@ final class AuthenticateSession
 
     /**
      * Get the first authentication guard that has a user.
+     *
+     * @param  Collection<int, string>  $guards
      */
     private function getFirstGuardWithUser(Collection $guards): ?string
     {
-        return $guards->first(function ($guard) {
-            $guardInstance = $this->auth->guard($guard);
-
-            return method_exists($guardInstance, 'hasUser') && $guardInstance->hasUser();
-        });
+        return $guards->first(fn (string $guard) => $this->auth->guard($guard)->hasUser());
     }
 
     /**
@@ -82,13 +80,13 @@ final class AuthenticateSession
      */
     private function storePasswordHashInSession(Request $request, string $guard): void
     {
-        /** @var SessionGuard|\Illuminate\Contracts\Auth\Guard */
         $guardInstance = $this->auth->guard($guard);
+        $password = $guardInstance->user()?->getAuthPassword() ?? '';
 
         $request->session()->put([
-            "password_hash_{$guard}" => method_exists($guardInstance, 'hashPasswordForCookie')
-                ? $guardInstance->hashPasswordForCookie($guardInstance->user()->getAuthPassword())
-                : $guardInstance->user()->getAuthPassword(),
+            "password_hash_{$guard}" => $guardInstance instanceof SessionGuard
+                ? $guardInstance->hashPasswordForCookie($password)
+                : $password,
         ]);
     }
 
@@ -97,11 +95,9 @@ final class AuthenticateSession
      */
     private function validatePasswordHash(SessionGuard $guard, ?string $passwordHash, string $storedValue): bool
     {
-        // Try new HMAC format first (Laravel 12.45.0+)...
-        if (method_exists($guard, 'hashPasswordForCookie')) {
-            if (hash_equals($guard->hashPasswordForCookie($passwordHash), $storedValue)) {
-                return true;
-            }
+        // Try HMAC format (always available on SessionGuard)...
+        if (hash_equals($guard->hashPasswordForCookie($passwordHash ?? ''), $storedValue)) {
+            return true;
         }
 
         // Fall back to raw password hash format for backward compatibility...

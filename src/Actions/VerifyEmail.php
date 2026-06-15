@@ -9,7 +9,6 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Events\Dispatcher as DispatcherContract;
-use Illuminate\Foundation\Application;
 
 /**
  * Verify a user's email via a signed verification URL.
@@ -23,7 +22,6 @@ final readonly class VerifyEmail
     public function __construct(
         private Shield $shield,
         private DispatcherContract $dispatcher,
-        private Application $app,
     ) {}
 
     /**

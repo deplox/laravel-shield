@@ -61,7 +61,7 @@ final class Login
 
         $this->limiter->clear($throttleKey);
 
-        return $guard->user();
+        return $guard->user() ?? throw new \LogicException('Guard has no user after successful authentication.');
     }
 
     /**
@@ -75,7 +75,7 @@ final class Login
             return false;
         }
 
-        if (! ($this->shield->validateUser)($guard->user())) {
+        if (! ($this->shield->validateUser)($guard->user() ?? throw new \LogicException('Guard has no user after once() returned true.'))) {
             return false;
         }
 

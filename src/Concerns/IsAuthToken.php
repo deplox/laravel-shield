@@ -21,6 +21,7 @@ use function hash;
  * @see \Deplox\Shield\Contracts\IsAuthToken
  *
  * @property-read string|null $plain
+ * @property \Carbon\CarbonImmutable|null $last_used_at
  */
 trait IsAuthToken
 {
@@ -80,6 +81,7 @@ trait IsAuthToken
         ]);
     }
 
+    /** @return BelongsTo<\Illuminate\Database\Eloquent\Model, $this> */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(app(Shield::class)->userModel, 'user_id');
@@ -97,15 +99,9 @@ trait IsAuthToken
         }
 
         $connection = $this->getConnection();
-
-        if (method_exists($connection, 'hasModifiedRecords') &&
-            method_exists($connection, 'setRecordModificationState')) {
-            $hasModifiedRecords = $connection->hasModifiedRecords();
-            $this->forceFill(['last_used_at' => now()])->saveQuietly();
-            $connection->setRecordModificationState($hasModifiedRecords);
-        } else {
-            $this->forceFill(['last_used_at' => now()])->saveQuietly();
-        }
+        $hasModifiedRecords = $connection->hasModifiedRecords();
+        $this->forceFill(['last_used_at' => now()])->saveQuietly();
+        $connection->setRecordModificationState($hasModifiedRecords);
     }
 
     /**
@@ -117,6 +113,7 @@ trait IsAuthToken
      *   2. Tokens without an expiry: pruned when they have been idle for N days
      *      (last_used_at <= cutoff, or never used and created <= cutoff).
      */
+    /** @return Builder<static> */
     public function prunable(): Builder
     {
         $cutoff = now()->subDays(app(Shield::class)->pruneDays);
@@ -147,11 +144,13 @@ trait IsAuthToken
         ];
     }
 
+    /** @return Attribute<string|null, never> */
     protected function plain(): Attribute
     {
         return Attribute::make(get: fn () => $this->plain);
     }
 
+    /** @return Attribute<never, string> */
     protected function token(): Attribute
     {
         return Attribute::make(set: fn ($value) => hash('sha256', $this->plain = $value));
